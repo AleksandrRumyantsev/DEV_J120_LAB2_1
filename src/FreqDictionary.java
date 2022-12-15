@@ -1,14 +1,32 @@
-import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.*;
 
 public class FreqDictionary {
-    public void createFiles (String name, Collection <String> collection){
+    private  int count =0;
+    private ArrayList<String> collection;
+
+    public FreqDictionary(ArrayList<String> collection) {
+        Collections.sort(collection);
+        this.collection = collection;
+        this.count = collection.size();
+    }
+
+
+    private LinkedHashMap <String, Integer> createSortedMapByKey (ArrayList<String> list){
+        LinkedHashMap<String, Integer> sortedList = new LinkedHashMap<>();
+        for (String s:list){
+            if (sortedList.containsKey(s)){
+                sortedList.put(s,sortedList.get(s)+1);
+            }else{
+                sortedList.put(s,1);
+            }
+        }
+        return sortedList;
+    }
+    private void createFiles (String name, Map<String,Integer > sortedList){
+
         File file = new File(name);
         if (!file.exists()){
             try{
@@ -19,59 +37,31 @@ public class FreqDictionary {
         }
         if (file.canWrite()){
             try (FileWriter writer = new FileWriter(file, false)){
-                for (String s:collection){
-                    writer.write(s+"\n");
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-    public static void main(String[] args) {
-        //String filename = args[0]; //получаем ние файла из аргумента командной строки
-        String filename = "j120-lab2.txt";
-        ArrayList <String> list = new ArrayList<>();
-
-        //Если аргумент пустой, запрашиваем ввод имени файла в консоли
-        if (filename.isEmpty()) {
-            System.out.println("Файла не существует! Введите название файла!:");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-            try {
-                filename  = reader.readLine();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        //Получаем весь список слов из текста
-        File file = new File(filename);
-        if (file.canRead()){
-            try (BufferedReader bufferedReader = Files.newBufferedReader(Path.of(filename), Charset.forName("UTF-8"))) {
-                String line = null;
-                while ((line = bufferedReader.readLine()) != null) {
-                    //System.out.println(line);
-                    String [] arrStr = line.split("\\p{P}*[ \\t\\n\\r]+\\p{P}*|^\\p{P}|\\p{P}$|[ \\t\\n\\r\\p{P}]{2,}"); //Делим строки на слова, игнорируя пунктуацию
-                    for (String ss:arrStr){
-                        if (!ss.isEmpty()) {
-                            list.add(ss.toLowerCase()); //Добавляем слова в список в нижнем регистре
-                            System.out.println(ss);
-                        }
+                writer.write("Всего слов в книге: " + count + "\n");
+                sortedList.forEach((key, value)->{
+                    try {
+                        double d = (double) value/count;
+                        System.out.println(value+ " / " + count + " = " + d);
+                        writer.write("Слово: " + key + "     Абсол. част.: " + value + "    раз. Относ. част.:   " + d + "\n");
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
-                }
+                });
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
-        //Делаем отчет со списком слов отсортированным по алфавиту:
-        Collections.sort(list);
-        //Создаем отчет "report - by - alph .txt"
-        FreqDictionary freqDictionary = new FreqDictionary();
-        freqDictionary.createFiles("report - by - alph .txt", list);
-        //Создаем отчет report-by-alph-rev.txt с реверсивной сортировкой
-        Collections.reverse(list);
-        freqDictionary.createFiles("report-by-alph-rev.txt", list);
     }
-
-
-
+    public void createReportByAlph (String name){
+        this.createFiles(name,this.createSortedMapByKey(collection));
+    }
+    public void createReportByAlphRev (String name){
+        ArrayList<String> col2 = new ArrayList<> (collection);
+        Collections.reverse(col2);
+        this.createFiles(name,this.createSortedMapByKey(col2));
+    }
+    public void createReportByFreq (String name){
+        TreeMap <String, Integer> treeMap = new TreeMap<>(createSortedMapByKey(collection));
+        this.createFiles(name,treeMap);
+    }
 }
